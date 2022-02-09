@@ -25,7 +25,9 @@ def execute(block, config):
     c_e1 = block['EFT_of_LSS', 'c_e1_1000'] * 1000.
     c_e2 = block['EFT_of_LSS', 'c_e2_1000'] * 1000.
 
-    z_survey = block['EFT_of_LSS', 'z_survey']
+    ##How to input array in ini file?
+    #z_survey = block['EFT_of_LSS', 'z_survey']
+    z_survey = np.array([0.32, 0.57])
 
     omega_m_AP = block.get('EFT_of_LSS', 'omega_m_AP', default=0.31)
     k_M = block.get('EFT_of_LSS', 'k_M', default=0.7)

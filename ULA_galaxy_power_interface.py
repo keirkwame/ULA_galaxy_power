@@ -18,7 +18,7 @@ def execute(block, config):
     b3 = block['EFT_of_LSS', 'b3']
     #b4 = block['EFT_of_LSS', 'b4']
     #if b4 == 'fix_to_b2':
-    b4 = cp.deepcopy(b2)
+    b4 = 0. #cp.deepcopy(b2)
     c_ct = block['EFT_of_LSS', 'c_ct']
     c_r1 = block['EFT_of_LSS', 'c_r1']
     c_r2 = block['EFT_of_LSS', 'c_r2']
@@ -52,13 +52,14 @@ def execute(block, config):
     h_z = block['distances', 'h']
     d_a = block['distances', 'd_a'] * h #Mpc/h
     idx_distance_0 = np.where(z_distance == 0.)[0][0]
+    print(idx_distance_0)
 
     #Get logarithmic growth rate
     k_growth, z_growth, f = block.get_grid('linear_cdm_transfer', 'k_h', 'z', 'growth_factor_f') #h/Mpc
 
     #Get linear matter power spectrum
     k_power, z_power, pk = block.get_grid('matter_power_lin', 'k_h', 'z', 'p_k') #Check order #h/Mpc, (Mpc/h)^3
-    print(k_power.shape, z_power.shape, pk.shape)
+    print('Matter power:', k_power.shape, z_power.shape, pk.shape)
     ##Check k_power values
 
     #Set-up Pybird RSD calculation
@@ -68,13 +69,17 @@ def execute(block, config):
     for i, z in enumerate(z_survey):
         print('z =', z, np.where(z_distance == z), np.where(np.absolute(z_distance - z) < 1.e-4))
         idx_distance = np.where(np.absolute(z_distance - z) < 1.e-4)[0][0]
+        print('z =', z_distance[idx_distance])
         idx_growth = np.where(np.absolute(z_growth - z) < 1.e-4)[0][0]
+        print('z =', z_growth[idx_growth])
         idx_power = np.where(np.absolute(z_power - z) < 1.e-4)[0][0]
+        print('z =', z_power[idx_power])
 
         common = pyb.Common(optiresum=True)
         nonlinear = pyb.NonLinear(load=True, save=True, co=common)
         resum = pyb.Resum(co=common)
         projection = pyb.Projection(k, omega_m_AP, z, co=common)
+        print('f, d_A, H(z)/H_0', f[0, idx_growth], d_a[idx_distance], h_z[idx_distance] / h_z[idx_distance_0])
         bird = pyb.Bird(k_power, pk[:, idx_power], f[0, idx_growth], d_a[idx_distance],
                         h_z[idx_distance] / h_z[idx_distance_0], z, which='full', co=common)
 

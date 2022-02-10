@@ -8,21 +8,30 @@ def setup(options):
     """Setup likelihood class."""
     #theory_instance = ULA.RSD_model()
     #Get ULA galaxy power parameters
+    nz = options['EFT_of_LSS', 'nz']
     omega_m_AP = options.get('EFT_of_LSS', 'omega_m_AP')
+    k_M = options.get('EFT_of_LSS', 'k_M') #, default=0.70)
+    b4_fix_to_b2 = options.get('EFT_of_LSS', 'b4_fix_to_b2')
 
-    return omega_m_AP #theory_instance
+    k_min = options.get('EFT_of_LSS', 'k_min') #, default=0.001)
+    k_max = options.get('EFT_of_LSS', 'k_max') #, default=0.5)
+    nk = options.get('EFT_of_LSS', 'nk') #, default=50)
+    k = np.linspace(k_min, k_max, num=nk)
+
+    return (nz, omega_m_AP, k_M, b4_fix_to_b2, k) #theory_instance
 
 def execute(block, config):
     """Execute theory calculation (galaxy clustering multipoles) for input linear cosmology."""
     #theory_instance = config
+    nz, omega_m_AP, k_M, b4_fix_to_b2, k = config
     #Get ULA galaxy power parameters
-    nz = block['EFT_of_LSS', 'nz']
-    omega_m_AP = config #block.get('EFT_of_LSS', 'omega_m_AP') #, default=0.31)
-    k_M = block.get('EFT_of_LSS', 'k_M') #, default=0.70)
-    k_min = block.get('EFT_of_LSS', 'k_min') #, default=0.001)
-    k_max = block.get('EFT_of_LSS', 'k_max') #, default=0.5)
-    nk = block.get('EFT_of_LSS', 'nk') #, default=50)
-    k = np.linspace(k_min, k_max, num=nk)
+    #nz = block['EFT_of_LSS', 'nz']
+    #omega_m_AP = config #block.get('EFT_of_LSS', 'omega_m_AP') #, default=0.31)
+    #k_M = block.get('EFT_of_LSS', 'k_M') #, default=0.70)
+    #k_min = block.get('EFT_of_LSS', 'k_min') #, default=0.001)
+    #k_max = block.get('EFT_of_LSS', 'k_max') #, default=0.5)
+    #nk = block.get('EFT_of_LSS', 'nk') #, default=50)
+    #k = np.linspace(k_min, k_max, num=nk)
 
     # Load linear cosmology from block
     #Get cosmological parameters
@@ -51,7 +60,7 @@ def execute(block, config):
 
     #Set-up Pybird RSD calculation
     z_multipoles = np.zeros(nz)
-    monopole = np.zeros((nk, nz))
+    monopole = np.zeros((k.shape[0], nz))
     quadrupole = np.zeros_like(monopole)
 
     for i in range(nz):
@@ -62,9 +71,13 @@ def execute(block, config):
         b1 = block['EFT_of_LSS', 'b1'+param_suffix]
         b2 = block['EFT_of_LSS', 'b2'+param_suffix]
         b3 = block['EFT_of_LSS', 'b3'+param_suffix]
+        if b4_fix_to_b2:
+            b4 = cp.deepcopy(b2)
+        else:
+            b4 = block['EFT_of_LSS', 'b4' + param_suffix]
         # b4 = block['EFT_of_LSS', 'b4']
         # if b4 == 'fix_to_b2':
-        b4 = 0.  # cp.deepcopy(b2)
+        #b4 = 0.  # cp.deepcopy(b2)
         c_ct = block['EFT_of_LSS', 'c_ct'+param_suffix]
         c_r1 = block['EFT_of_LSS', 'c_r1'+param_suffix]
         c_r2 = block['EFT_of_LSS', 'c_r2'+param_suffix]

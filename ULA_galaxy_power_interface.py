@@ -7,29 +7,17 @@ from pybird import pybird as pyb
 def setup(options):
     """Setup likelihood class."""
     #theory_instance = ULA.RSD_model()
-    return 0 #theory_instance
+    #Get ULA galaxy power parameters
+    omega_m_AP = block.get('EFT_of_LSS', 'omega_m_AP')
+
+    return omega_m_AP #theory_instance
 
 def execute(block, config):
     """Execute theory calculation (galaxy clustering multipoles) for input linear cosmology."""
     #theory_instance = config
     #Get ULA galaxy power parameters
-    b1 = block['EFT_of_LSS', 'b1']
-    b2 = block['EFT_of_LSS', 'b2']
-    b3 = block['EFT_of_LSS', 'b3']
-    #b4 = block['EFT_of_LSS', 'b4']
-    #if b4 == 'fix_to_b2':
-    b4 = 0. #cp.deepcopy(b2)
-    c_ct = block['EFT_of_LSS', 'c_ct']
-    c_r1 = block['EFT_of_LSS', 'c_r1']
-    c_r2 = block['EFT_of_LSS', 'c_r2']
-    c_e1 = block['EFT_of_LSS', 'c_e1_1000'] * 1000.
-    c_e2 = block['EFT_of_LSS', 'c_e2_1000'] * 1000.
-
-    ##How to input array in ini file?
-    #z_survey = block['EFT_of_LSS', 'z_survey']
-    z_survey = np.array([0.32, 0.5])
-
-    omega_m_AP = block.get('EFT_of_LSS', 'omega_m_AP') #, default=0.31)
+    nz = block['EFT_of_LSS', 'nz']
+    omega_m_AP = config #block.get('EFT_of_LSS', 'omega_m_AP') #, default=0.31)
     k_M = block.get('EFT_of_LSS', 'k_M') #, default=0.70)
     k_min = block.get('EFT_of_LSS', 'k_min') #, default=0.001)
     k_max = block.get('EFT_of_LSS', 'k_max') #, default=0.5)
@@ -39,8 +27,7 @@ def execute(block, config):
     # Load linear cosmology from block
     #Get cosmological parameters
     #omega_c_h2 = block['cosmological_parameters', 'omch2']
-    h = block['cosmological_parameters', 'h0']
-
+    #h = block['cosmological_parameters', 'h0']
     #Get axion parameters
     #m_ax = 10. ** block['axion_parameters', 'm'] #eV
     #omega_ax_h2 = block['axion_parameters', 'omaxh2']
@@ -63,10 +50,27 @@ def execute(block, config):
     ##Check k_power values
 
     #Set-up Pybird RSD calculation
-    monopole = np.zeros((nk, z_survey.shape[0]))
+    z_multipoles = np.zeros(nz)
+    monopole = np.zeros((nk, nz))
     quadrupole = np.zeros_like(monopole)
 
-    for i, z in enumerate(z_survey):
+    for i in range(nz):
+        # Get ULA galaxy power parameters
+        param_suffix = '_z%i'%(i+1)
+
+        z = block['EFT_of_LSS', param_suffix[1:]]
+        b1 = block['EFT_of_LSS', 'b1'+param_suffix]
+        b2 = block['EFT_of_LSS', 'b2'+param_suffix]
+        b3 = block['EFT_of_LSS', 'b3'+param_suffix]
+        # b4 = block['EFT_of_LSS', 'b4']
+        # if b4 == 'fix_to_b2':
+        b4 = 0.  # cp.deepcopy(b2)
+        c_ct = block['EFT_of_LSS', 'c_ct'+param_suffix]
+        c_r1 = block['EFT_of_LSS', 'c_r1'+param_suffix]
+        c_r2 = block['EFT_of_LSS', 'c_r2'+param_suffix]
+        c_e1 = block['EFT_of_LSS', 'c_e1_1000'+param_suffix] * 1000.
+        c_e2 = block['EFT_of_LSS', 'c_e2_1000'+param_suffix] * 1000.
+
         print('z =', z, np.where(z_distance == z), np.where(np.absolute(z_distance - z) < 1.e-4))
         idx_distance = np.where(np.absolute(z_distance - z) < 1.e-4)[0][0]
         print('z =', z_distance[idx_distance])
@@ -79,7 +83,8 @@ def execute(block, config):
         nonlinear = pyb.NonLinear(load=True, save=True, co=common)
         resum = pyb.Resum(co=common)
         projection = pyb.Projection(k, omega_m_AP, z, co=common)
-        print('f, d_A, H(z)/H_0', f[0, idx_growth], d_a[idx_distance] * h_z[idx_distance_0], h_z[idx_distance] / h_z[idx_distance_0])
+        print('f, d_A, H(z)/H_0', f[0, idx_growth], d_a[idx_distance] * h_z[idx_distance_0],
+              h_z[idx_distance] / h_z[idx_distance_0])
         np.savez('matter_power.npz', k_power, pk[:, idx_power])
         bird = pyb.Bird(k_power, pk[:, idx_power], f[0, idx_growth], d_a[idx_distance] * h_z[idx_distance_0],
                         h_z[idx_distance] / h_z[idx_distance_0], z, which='full', co=common)
@@ -92,13 +97,16 @@ def execute(block, config):
         projection.AP(bird)
         projection.kdata(bird)
 
-        #Add stochastic terms
+        #Stochastic term
         stochastic_term = c_e1 + (c_e2 * ((k / k_M) ** 2.))
+
+        #Create output arrays
+        z_multipoles[i] = z
         monopole[:, i] = bird.fullPs[0] + stochastic_term
         quadrupole[:, i] = bird.fullPs[1] + (4. * f[0, idx_growth] * stochastic_term / 15.)
 
     #Save galaxy multipoles to block
-    block.put_grid('EFT_of_LSS', 'k_multipoles', k, 'z_multipoles', z_survey, 'monopole', monopole) #, 'quadrupole',
+    block.put_grid('EFT_of_LSS', 'k_multipoles', k, 'z_multipoles', z_multipoles, 'monopole', monopole) #, 'quadrupole',
     #                quadrupole)
     block.put('EFT_of_LSS', 'quadrupole', quadrupole)
 

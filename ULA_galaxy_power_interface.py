@@ -27,7 +27,7 @@ def execute(block, config):
 
     ##How to input array in ini file?
     #z_survey = block['EFT_of_LSS', 'z_survey']
-    z_survey = np.array([0.32, 0.57])
+    z_survey = np.array([0.32, 0.5])
 
     omega_m_AP = block.get('EFT_of_LSS', 'omega_m_AP') #, default=0.31)
     k_M = block.get('EFT_of_LSS', 'k_M') #, default=0.70)
@@ -50,7 +50,7 @@ def execute(block, config):
     #Get cosmological distances
     z_distance = block['distances', 'z']
     h_z = block['distances', 'h']
-    d_a = block['distances', 'd_a'] * h #Mpc/h
+    d_a = block['distances', 'd_a'] #Mpc
     idx_distance_0 = np.where(z_distance == 0.)[0][0]
     print(idx_distance_0)
 
@@ -79,8 +79,9 @@ def execute(block, config):
         nonlinear = pyb.NonLinear(load=True, save=True, co=common)
         resum = pyb.Resum(co=common)
         projection = pyb.Projection(k, omega_m_AP, z, co=common)
-        print('f, d_A, H(z)/H_0', f[0, idx_growth], d_a[idx_distance], h_z[idx_distance] / h_z[idx_distance_0])
-        bird = pyb.Bird(k_power, pk[:, idx_power], f[0, idx_growth], d_a[idx_distance],
+        print('f, d_A, H(z)/H_0', f[0, idx_growth], d_a[idx_distance] * h_z[idx_distance_0], h_z[idx_distance] / h_z[idx_distance_0])
+        np.savez('matter_power.npz', k_power, pk[:, idx_power])
+        bird = pyb.Bird(k_power, pk[:, idx_power], f[0, idx_growth], d_a[idx_distance] * h_z[idx_distance_0],
                         h_z[idx_distance] / h_z[idx_distance_0], z, which='full', co=common)
 
         #Do RSD calculation

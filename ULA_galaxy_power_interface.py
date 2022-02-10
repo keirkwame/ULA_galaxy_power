@@ -8,7 +8,7 @@ def setup(options):
     """Setup likelihood class."""
     #theory_instance = ULA.RSD_model()
     #Get ULA galaxy power parameters
-    omega_m_AP = block.get('EFT_of_LSS', 'omega_m_AP')
+    omega_m_AP = options.get('EFT_of_LSS', 'omega_m_AP')
 
     return omega_m_AP #theory_instance
 

@@ -11,7 +11,7 @@ def setup(options):
     nz = options['EFT_of_LSS', 'nz']
     omega_m_AP = options.get('EFT_of_LSS', 'omega_m_AP')
     k_M = options.get('EFT_of_LSS', 'k_M') #, default=0.70)
-    b4_fix_to_b2 = options.get('EFT_of_LSS', 'b4_fix_to_b2')
+    b4_fix_to_b2 = bool(options.get('EFT_of_LSS', 'b4_fix_to_b2'))
 
     k_min = options.get('EFT_of_LSS', 'k_min') #, default=0.001)
     k_max = options.get('EFT_of_LSS', 'k_max') #, default=0.5)
@@ -75,6 +75,7 @@ def execute(block, config):
             b4 = cp.deepcopy(b2)
         else:
             b4 = block['EFT_of_LSS', 'b4' + param_suffix]
+        print('b4 =', b4)
         # b4 = block['EFT_of_LSS', 'b4']
         # if b4 == 'fix_to_b2':
         #b4 = 0.  # cp.deepcopy(b2)
